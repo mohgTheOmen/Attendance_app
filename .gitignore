@@ -8,4 +8,6 @@ frontend/dist/
 .env
 .env.deploy
 backend/dev.db
+/backups/
+/attendance.xlsx
 ~$*

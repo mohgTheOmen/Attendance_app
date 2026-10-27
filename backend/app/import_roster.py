@@ -52,14 +52,26 @@ def make_email(full: str, domain: str, taken: set[str]) -> str:
 
 
 def read_roster(path: Path) -> list[tuple[str, str]]:
-    """Return (full_name, group) rows, skipping block titles and header rows."""
+    """Return (full_name, group) from either name/group or group/name blocks."""
     ws = load_workbook(path, read_only=True, data_only=True).worksheets[0]
     rows = []
     for row in ws.iter_rows(values_only=True):
         cells = [str(c).strip() if c is not None else "" for c in row[:3]]
-        if len(cells) < 3 or not cells[1] or not cells[2] or cells[1].lower() == "nume":
+        if len(cells) < 3 or not cells[0].isdigit():
             continue
-        rows.append((cells[1], cells[2]))
+
+        def group(value: str) -> str | None:
+            match = re.fullmatch(r"(?:grupa?\s+)?(\d{4}[A-Za-z]{0,2})", value, re.I)
+            return match.group(1).upper() if match else None
+
+        if code := group(cells[2]):
+            name = cells[1]
+        elif code := group(cells[1]):
+            name = cells[2]
+        else:
+            continue
+        if name:
+            rows.append((name, code))
     return rows
 
 

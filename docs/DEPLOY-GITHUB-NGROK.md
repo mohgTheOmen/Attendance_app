@@ -49,4 +49,6 @@ Each push to `main` runs CI and publishes a new backend image. On the PC, run th
 
 The `pgdata` and `uploads` Docker volumes persist across container recreation. Back up both volumes before upgrades and test restoring them. Do not run `docker compose down -v` against this deployment, because that removes the data volumes.
 
+The backend image includes Tesseract for paper-list OCR. OCR imports and their attendance records are stored in PostgreSQL; imported sheet images use the existing `uploads` volume. The backend starts by applying Alembic migrations, including the OCR schema migration. A local roster spreadsheet is not part of the image and should be imported separately if its users are needed. Azure OCR is optional and requires separate credentials.
+
 GitHub Actions cannot keep the backend online after a workflow ends. The ngrok free plan has usage limits and may show an interstitial to direct browser visits; the frontend sets ngrok's skip-warning request header for API calls. For a public service with uptime requirements, use an always-on server and a production domain.
