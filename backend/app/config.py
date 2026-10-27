@@ -29,6 +29,17 @@ class Settings(BaseSettings):
 
     cors_origins: list[str] = ["http://localhost:5173"]
 
+    # OCR import of paper attendance lists
+    tesseract_cmd: str | None = None  # auto-detected when unset
+    ocr_lang: str = "eng"
+    ocr_match_threshold: float = 70  # >= : matched, pre-selected
+    ocr_review_threshold: float = 55  # >= : suggested, pre-selected but flagged for review
+    # Optional Azure OpenAI vision engine (deployment of a vision-capable chat model)
+    azure_openai_endpoint: str | None = None  # https://<resource>.openai.azure.com
+    azure_openai_api_key: str | None = None
+    azure_openai_deployment: str | None = None
+    azure_openai_api_version: str = "2024-10-21"
+
 
 @lru_cache
 def get_settings() -> Settings:

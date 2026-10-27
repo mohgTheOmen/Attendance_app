@@ -18,6 +18,7 @@ export function Layout() {
       ? [
           ['/admin', 'Dashboard'],
           ['/admin/attendances', 'Attendances'],
+          ['/admin/import', 'Import list'],
           ['/admin/events', 'Events'],
           ['/admin/users', 'Users'],
           ['/admin/groups', 'Groups'],

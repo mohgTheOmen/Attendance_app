@@ -74,6 +74,7 @@ export default function Events() {
                 <td><span className={`badge ${state(e)}`}>{state(e)}</span></td>
                 <td className="actions">
                   <Link to={`/admin/attendances?event_id=${e.id}`}>Attendances</Link>
+                  <Link to={`/admin/import?event_id=${e.id}`}>Import list</Link>
                   <button className="link" onClick={() => setAbsentFor(e)}>Absentees</button>
                   <button className="link" onClick={() => setEditing(e)}>Edit</button>
                   <button className="link danger" onClick={() => setDeleting(e)}>Delete</button>

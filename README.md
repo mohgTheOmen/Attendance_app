@@ -71,6 +71,22 @@ cd backend
 
 The tests run against a temporary SQLite database. They cover auth and roles, the check-in window and late flag, duplicate prevention, image validation, photo privacy, review, filters, absentees, CSV/XLSX export, recurrence expansion (including DST), series-scoped edits, and group-restricted events.
 
+## Importing paper attendance lists
+
+Under **Import list**, an admin uploads one or more photos of a signed paper list:
+
+1. **Read:** the sheet is located and straightened in the photo, then Tesseract reads it.
+2. **Correct:** each line is cleaned up (numbering, group codes, "Erasmus", dates and grades are dropped) and fuzzy-matched against active students. Each student is matched to at most one line.
+3. **Deduplicate:** names repeated across lines or photos, and students already recorded for the event, are flagged rather than saved twice.
+4. **Review:** confident matches and plausible ones are pre-selected; unreadable lines are left for the admin to assign or skip. The date is read from the sheet, or the photo's camera date is offered. If it's unclear, the admin picks the day and the event, and can create one on the spot. One sheet can be saved to several events, e.g. two sessions.
+5. **Save:** creates approved attendances marked **Paper list**, with the photo kept as evidence.
+
+Tesseract has to be installed on the server. On Windows: `winget install UB-Mannheim.TesseractOCR`; the Docker image already includes it. To try the pipeline on an image without saving anything: `python -m app.ocr.evaluate list.jpg`.
+
+Tesseract is weak on handwriting, so most of the accuracy comes from matching against the roster. On a test photo of a handwritten list it pre-selected 16 of 19 students correctly, with no false matches. The rest were left for the admin.
+
+The **Attendances** page has filters for source (self check-in or paper list), group and event date range. It also shows charts for the current filters: attendance per event against the expected number, review status, source, by group, and most present. Click a chart to filter by it, or switch any chart to a table.
+
 ## CI/CD
 
 [.github/workflows/ci.yml](.github/workflows/ci.yml) runs on pushes to `main`, on `v*` tags and on pull requests:

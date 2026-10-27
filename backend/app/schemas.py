@@ -202,6 +202,7 @@ class AttendanceOut(ORM):
     review_comment: str
     reviewed_at: datetime | None
     submitted_at: datetime
+    source: str
     user: UserBrief
     event: EventBrief
 
@@ -211,6 +212,61 @@ class AttendancePage(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class EventTurnout(BaseModel):
+    event_id: int
+    title: str
+    starts_at: datetime
+    count: int
+    approved: int
+    from_lists: int
+    expected: int
+
+
+class TrendPoint(BaseModel):
+    period: date
+    self: int
+    ocr: int
+    late: int
+
+
+class StudentRate(BaseModel):
+    user_id: int
+    full_name: str
+    attended: int
+    expected: int
+    rate: float
+
+
+class GroupRate(BaseModel):
+    group_id: int
+    group: str
+    attended: int
+    expected: int
+    rate: float
+
+
+class AttendanceSummary(BaseModel):
+    total: int
+    late: int
+    by_status: dict[str, int]
+    by_source: dict[str, int]
+    per_event: list[EventTurnout]  # oldest -> newest, at most 40 events
+    per_group: list[dict]
+    top_users: list[dict]
+    # volume over the filtered attendances
+    granularity: str
+    trend: list[TrendPoint]
+    by_weekday: list[int]  # Mon..Sun, in the requested timezone
+    # rates over past events in scope (non-rejected attendance = present)
+    events_in_scope: int
+    students_in_scope: int
+    avg_turnout: float | None
+    at_risk: int  # students below 50% with at least 2 expected events
+    students_low: list[StudentRate]
+    students_high: list[StudentRate]
+    group_rates: list[GroupRate]
 
 
 class AttendanceReview(BaseModel):
@@ -232,3 +288,69 @@ class StatsOut(BaseModel):
 
 UserOut.model_rebuild()
 TokenOut.model_rebuild()
+
+
+# --- OCR imports ------------------------------------------------------------
+class OcrSuggestion(BaseModel):
+    user_id: int
+    full_name: str
+    score: float
+
+
+class OcrLine(BaseModel):
+    index: int
+    image_index: int
+    raw: str
+    normalized: str
+    status: str
+    user_id: int | None
+    score: float
+    in_audience: bool
+    suggestions: list[OcrSuggestion]
+
+
+class OcrImportOut(BaseModel):
+    id: int
+    event_id: int | None
+    engine: str
+    image_count: int
+    created_at: datetime
+    committed_at: datetime | None
+    detected_date: date | None
+    date_text: str
+    photo_date: date | None
+    event: EventOut | None  # the chosen event
+    suggested_events: list[EventOut]  # events on the detected (or photo) date
+    lines: list[OcrLine]
+    created_attendances: int  # saved from this import so far
+
+
+class OcrImportUpdate(BaseModel):
+    event_id: int
+
+
+class OcrImportBrief(BaseModel):
+    id: int
+    event_id: int | None
+    event_title: str | None
+    engine: str
+    image_count: int
+    line_count: int
+    created_at: datetime
+    committed_at: datetime | None
+    created_attendances: int
+
+
+class OcrCommitEntry(BaseModel):
+    user_id: int
+    line_index: int | None = None  # which line (and so which photo) the entry came from
+
+
+class OcrCommitIn(BaseModel):
+    event_id: int | None = None  # defaults to the event chosen on the import
+    entries: list[OcrCommitEntry] = Field(min_length=1)
+
+
+class OcrCommitOut(BaseModel):
+    created: int
+    skipped_existing: int

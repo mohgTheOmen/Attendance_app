@@ -6,6 +6,7 @@ import Attendances from './pages/admin/Attendances'
 import Dashboard from './pages/admin/Dashboard'
 import Events from './pages/admin/Events'
 import Groups from './pages/admin/Groups'
+import ImportList from './pages/admin/ImportList'
 import Users from './pages/admin/Users'
 import CheckIn from './pages/CheckIn'
 import Login from './pages/Login'
@@ -32,6 +33,8 @@ export default function App() {
                 <Route path="/admin/events" element={<Events />} />
                 <Route path="/admin/users" element={<Users />} />
                 <Route path="/admin/groups" element={<Groups />} />
+                <Route path="/admin/import" element={<ImportList />} />
+                <Route path="/admin/import/:importId" element={<ImportList />} />
               </Route>
             </Route>
           </Route>

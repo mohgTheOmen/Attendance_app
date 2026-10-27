@@ -122,6 +122,26 @@ class Event(Base):
     series: Mapped[EventSeries | None] = relationship(back_populates="events", lazy="joined")
 
 
+class OcrImport(Base):
+    """A batch of photographed paper attendance lists for one event."""
+
+    __tablename__ = "ocr_imports"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    # Chosen by the admin during review; may be unknown at upload time.
+    event_id: Mapped[int | None] = mapped_column(ForeignKey("events.id", ondelete="SET NULL"), index=True)
+    engine: Mapped[str] = mapped_column(String(32))
+    detected_date: Mapped[date | None] = mapped_column(Date)  # read from the sheet
+    date_text: Mapped[str] = mapped_column(String(100), default="")  # the text it was read from
+    photo_date: Mapped[date | None] = mapped_column(Date)  # camera EXIF date, a fallback hint
+    image_paths: Mapped[str] = mapped_column(Text)  # JSON list of upload-relative paths
+    raw_text: Mapped[str] = mapped_column(Text, default="")
+    result: Mapped[str] = mapped_column(Text, default="[]")  # JSON list of matched lines
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    committed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class Attendance(Base):
     __tablename__ = "attendances"
     __table_args__ = (UniqueConstraint("event_id", "user_id", name="uq_attendance_event_user"),)
@@ -141,6 +161,8 @@ class Attendance(Base):
     reviewed_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+    source: Mapped[str] = mapped_column(String(16), default="self")  # self | ocr
+    ocr_import_id: Mapped[int | None] = mapped_column(ForeignKey("ocr_imports.id", ondelete="SET NULL"))
 
     event: Mapped[Event] = relationship(back_populates="attendances")
     user: Mapped[User] = relationship(foreign_keys=[user_id])

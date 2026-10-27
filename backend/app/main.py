@@ -10,7 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.config import get_settings
 from app.db import SessionLocal
 from app.models import Role, User
-from app.routers import admin, attendances, auth, events
+from app.routers import admin, attendances, auth, events, ocr
 from app.security import hash_password
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -51,7 +51,7 @@ app.add_middleware(
     expose_headers=["Content-Disposition"],
 )
 
-for r in (auth.router, events.router, attendances.router, admin.router):
+for r in (auth.router, events.router, attendances.router, admin.router, ocr.router):
     app.include_router(r, prefix="/api")
 
 Instrumentator(excluded_handlers=["/metrics", "/health"]).instrument(app).expose(

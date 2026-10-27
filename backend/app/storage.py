@@ -23,6 +23,18 @@ async def save_photo(upload: UploadFile) -> str:
     data = await upload.read(max_bytes + 1)
     if len(data) > max_bytes:
         raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, f"Photo exceeds {s.max_upload_mb} MB")
+    return store_image_bytes(data, s.max_image_px)
+
+
+def read_upload_limited(upload: UploadFile, max_mb: int) -> bytes:
+    data = upload.file.read(max_mb * 1024 * 1024 + 1)
+    if len(data) > max_mb * 1024 * 1024:
+        raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, f"{upload.filename} exceeds {max_mb} MB")
+    return data
+
+
+def store_image_bytes(data: bytes, max_px: int) -> str:
+    """Validate image bytes, strip metadata, re-encode as JPEG <= max_px; return relative path."""
     if not data:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Photo is empty")
     try:
@@ -36,7 +48,7 @@ async def save_photo(upload: UploadFile) -> str:
     except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "File is not a valid image")
 
-    img.thumbnail((s.max_image_px, s.max_image_px))
+    img.thumbnail((max_px, max_px))
     rel = Path(uuid.uuid4().hex[:2]) / f"{uuid.uuid4().hex}.jpg"
     dest = _root() / rel
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -57,3 +69,19 @@ def delete_photo(rel: str) -> None:
         photo_abspath(rel).unlink(missing_ok=True)
     except HTTPException:
         pass
+
+
+def unused_photos(db, paths) -> list[str]:
+    """The paths no attendance or list import refers to any more. A paper-list photo is shared
+    by every student on the list and by its import, so it must outlive any single one of them.
+    Call after the deletes are flushed and delete the files only once the commit succeeded."""
+    from sqlalchemy import func, select
+
+    from app.models import Attendance, OcrImport
+
+    db.flush()
+    return [
+        p for p in set(paths)
+        if not db.scalar(select(func.count()).where(Attendance.photo_path == p))
+        and not db.scalar(select(func.count()).where(OcrImport.image_paths.contains(f'"{p}"')))
+    ]
