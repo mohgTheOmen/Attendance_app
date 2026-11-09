@@ -66,6 +66,17 @@ docker compose --profile app up -d      # + backend (8000) and frontend (8080)
 4. **Observability**: `docker compose up -d prometheus grafana`. Prometheus also scrapes a backend running on the host (`host.docker.internal:8000`).
    For a native Grafana install, copy `infra/grafana/provisioning/*` into Grafana's `conf/provisioning`, set the env vars `PROMETHEUS_URL=http://localhost:9090` and `PG_HOST=localhost:5432`, and change the dashboards provider `path` to the absolute path of `infra/grafana/dashboards`.
 
+## Group voting
+
+Admins can open **Voting**, create a poll with a subject, two or more distinct options,
+and one or more eligible groups, then close voting manually. Active students in any
+selected group can submit exactly one option once per poll; votes cannot be changed.
+Both admins and eligible students see counts and percentages, refreshed every five
+seconds. No voter names, emails, or individual choices are returned with results.
+Participation is recorded internally to prevent duplicate votes, including simultaneous
+submissions. Polls are independent of attendance events. See
+[the voting plan](docs/VOTING-PLAN.md) for the API and verification scope.
+
 ## Tests
 
 ```powershell

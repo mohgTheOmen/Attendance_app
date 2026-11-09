@@ -22,11 +22,13 @@ export function Layout() {
           ['/admin/events', 'Events'],
           ['/admin/users', 'Users'],
           ['/admin/groups', 'Groups'],
+          ['/polls', 'Voting'],
           ['/account', 'Account'],
         ]
       : [
           ['/', 'Events'],
           ['/history', 'My attendance'],
+          ['/polls', 'Voting'],
           ['/account', 'Account'],
         ]
   return (

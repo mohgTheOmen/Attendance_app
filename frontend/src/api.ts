@@ -8,6 +8,17 @@ export interface GroupBrief {
   name: string
 }
 
+export interface Poll {
+  id: number
+  subject: string
+  is_open: boolean
+  created_at: string
+  groups: GroupBrief[]
+  options: { id: number; label: string; vote_count: number }[]
+  total_votes: number
+  has_voted: boolean
+}
+
 export interface Group extends GroupBrief {
   description: string
   created_at: string
