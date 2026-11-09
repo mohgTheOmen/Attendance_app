@@ -25,6 +25,12 @@ Deployment using GitHub Pages for the frontend and ngrok on a Windows PC for the
 - export the current filter as **CSV** or **Excel**
 - see who has not checked in for an event
 
+**Newsletters** are official, one-way professor announcements:
+- only professors/admins can publish
+- a newsletter can be sent to everyone or to one managed group
+- students see announcements for everyone plus their current groups
+- students cannot create newsletters or reply to them
+
 ## Quick start (Docker)
 
 Copy `.env.example` to `.env` and set every blank password/secret. Set `DATABASE_URL` to
@@ -52,7 +58,7 @@ docker compose --profile app up -d      # + backend (8000) and frontend (8080)
    .\.venv\Scripts\Activate.ps1          # venv already created; else: python -m venv .venv
    pip install -r requirements.txt
    copy .env.example .env                # then edit JWT_SECRET / admin credentials
-   alembic upgrade head
+   alembic upgrade head                 # includes the newsletter tables
    uvicorn app.main:app --reload         # http://localhost:8000/docs
    ```
    On first start the admin account from `.env` is created.
@@ -65,6 +71,17 @@ docker compose --profile app up -d      # + backend (8000) and frontend (8080)
    ```
 4. **Observability**: `docker compose up -d prometheus grafana`. Prometheus also scrapes a backend running on the host (`host.docker.internal:8000`).
    For a native Grafana install, copy `infra/grafana/provisioning/*` into Grafana's `conf/provisioning`, set the env vars `PROMETHEUS_URL=http://localhost:9090` and `PG_HOST=localhost:5432`, and change the dashboards provider `path` to the absolute path of `infra/grafana/dashboards`.
+
+## Group voting
+
+Admins can open **Voting**, create a poll with a subject, two or more distinct options,
+and one or more eligible groups, then close voting manually. Active students in any
+selected group can submit exactly one option once per poll; votes cannot be changed.
+Both admins and eligible students see counts and percentages, refreshed every five
+seconds. No voter names, emails, or individual choices are returned with results.
+Participation is recorded internally to prevent duplicate votes, including simultaneous
+submissions. Polls are independent of attendance events. See
+[the voting plan](docs/VOTING-PLAN.md) for the API and verification scope.
 
 ## Tests
 

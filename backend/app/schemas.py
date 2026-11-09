@@ -314,6 +314,48 @@ class StatsOut(BaseModel):
     recent_events: list[dict]
 
 
+# --- newsletters -------------------------------------------------------------
+class NewsletterRecipient(BaseModel):
+    users: list[UserBrief]
+    groups: list[GroupBrief]
+
+
+class NewsletterCreate(BaseModel):
+    subject: str = Field(min_length=1, max_length=200)
+    body: str = Field(min_length=1, max_length=5000)
+    audience_all: bool = False
+    group_id: int | None = None
+
+    @model_validator(mode="after")
+    def one_audience(self):
+        if self.audience_all == (self.group_id is not None):
+            raise ValueError("Choose everyone or exactly one group")
+        return self
+
+
+class NewsletterReply(BaseModel):
+    body: str = Field(min_length=1, max_length=5000)
+
+
+class NewsletterMessageOut(ORM):
+    id: int
+    body: str
+    created_at: datetime
+    author: UserBrief
+
+
+class NewsletterThreadOut(ORM):
+    id: int
+    subject: str
+    created_at: datetime
+    updated_at: datetime
+    creator: UserBrief
+    recipient: UserBrief | None
+    group: GroupBrief | None
+    audience_all: bool
+    messages: list[NewsletterMessageOut]
+
+
 UserOut.model_rebuild()
 TokenOut.model_rebuild()
 

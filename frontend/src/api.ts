@@ -8,6 +8,17 @@ export interface GroupBrief {
   name: string
 }
 
+export interface Poll {
+  id: number
+  subject: string
+  is_open: boolean
+  created_at: string
+  groups: GroupBrief[]
+  options: { id: number; label: string; vote_count: number }[]
+  total_votes: number
+  has_voted: boolean
+}
+
 export interface Group extends GroupBrief {
   description: string
   created_at: string
@@ -177,14 +188,40 @@ export interface Stats {
   }[]
 }
 
+export interface NewsletterMessage {
+  id: number
+  body: string
+  created_at: string
+  author: { id: number; email: string; full_name: string }
+}
+
+export interface NewsletterThread {
+  id: number
+  subject: string
+  created_at: string
+  updated_at: string
+  creator: { id: number; email: string; full_name: string }
+  recipient: { id: number; email: string; full_name: string } | null
+  group: GroupBrief | null
+  audience_all: boolean
+  messages: NewsletterMessage[]
+}
+
+export interface NewsletterRecipients {
+  users: { id: number; email: string; full_name: string }[]
+  groups: GroupBrief[]
+}
+
 const TOKEN_KEY = 'attendance.token'
 
 export const tokenStore = {
   get: (): string | null => {
-    try { return localStorage.getItem(TOKEN_KEY) } catch { return null }
+    // sessionStorage is isolated per browser tab. This allows an administrator and a
+    // student to test the app side by side without one tab replacing the other's login.
+    try { return sessionStorage.getItem(TOKEN_KEY) } catch { return null }
   },
   set: (t: string | null) => {
-    try { if (t) localStorage.setItem(TOKEN_KEY, t); else localStorage.removeItem(TOKEN_KEY) } catch { /* ignore */ }
+    try { if (t) sessionStorage.setItem(TOKEN_KEY, t); else sessionStorage.removeItem(TOKEN_KEY) } catch { /* ignore */ }
   },
 }
 
