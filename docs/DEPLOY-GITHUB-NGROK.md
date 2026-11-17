@@ -54,6 +54,8 @@ To export a report, open the report's table panel menu, choose **Inspect → Dat
 
 The attendance record counts approved and pending check-ins as present and rejected check-ins as missed. It lists past sessions in the selected date range that currently target the student's groups (or everyone). The session sheet includes current expected students plus any extra attendees. Group membership is current, not a historical snapshot. Course, semester, excuse documents, grades, and check-out times are not stored yet, so the other recommended reports require data-model work before they can be accurate.
 
+If a report table is empty, check the selected student or session and its assigned groups in the top panel. A class session with no students in its assigned groups has an empty sheet; an uncommitted paper-list import does not create attendance records.
+
 ## Updates and data
 
 Each push to `main` runs CI and publishes a new backend image. On the PC, run the `pull` and `up -d` commands above to update the backend. The Pages workflow republishes frontend changes automatically.

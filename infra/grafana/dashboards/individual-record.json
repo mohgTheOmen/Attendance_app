@@ -15,6 +15,39 @@
   "panels": [
     {
       "id": 23,
+      "title": "Selected student and current groups",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "attendance-pg"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 4
+      },
+      "targets": [
+        {
+          "rawSql": "\nSELECT u.id AS student_id, u.full_name AS student, u.email,\n       coalesce((SELECT string_agg(g.name, ', ' ORDER BY g.name)\n                 FROM group_members gm JOIN groups g ON g.id = gm.group_id\n                 WHERE gm.user_id = u.id), 'No groups') AS current_groups\nFROM users u WHERE u.id = ${student_id:sqlstring}::bigint\n",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "attendance-pg"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 24,
       "title": "Expected sessions",
       "type": "stat",
       "datasource": {
@@ -23,7 +56,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 0,
+        "y": 4,
         "w": 6,
         "h": 4
       },
@@ -47,7 +80,7 @@
       "options": {}
     },
     {
-      "id": 24,
+      "id": 25,
       "title": "Present sessions",
       "type": "stat",
       "datasource": {
@@ -56,7 +89,7 @@
       },
       "gridPos": {
         "x": 6,
-        "y": 0,
+        "y": 4,
         "w": 6,
         "h": 4
       },
@@ -80,7 +113,7 @@
       "options": {}
     },
     {
-      "id": 25,
+      "id": 26,
       "title": "Missed sessions",
       "type": "stat",
       "datasource": {
@@ -89,7 +122,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 0,
+        "y": 4,
         "w": 6,
         "h": 4
       },
@@ -113,7 +146,7 @@
       "options": {}
     },
     {
-      "id": 26,
+      "id": 27,
       "title": "Attendance rate",
       "type": "stat",
       "datasource": {
@@ -122,7 +155,7 @@
       },
       "gridPos": {
         "x": 18,
-        "y": 0,
+        "y": 4,
         "w": 6,
         "h": 4
       },
@@ -148,7 +181,7 @@
       "options": {}
     },
     {
-      "id": 27,
+      "id": 28,
       "title": "Attendance record - export this table as CSV",
       "type": "table",
       "datasource": {
@@ -157,7 +190,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 4,
+        "y": 8,
         "w": 24,
         "h": 16
       },
@@ -191,10 +224,10 @@
           "type": "grafana-postgresql-datasource",
           "uid": "attendance-pg"
         },
-        "query": {
-          "query": "SELECT id::text AS __value, full_name || ' (' || email || ')' AS __text FROM users WHERE role = 'user' AND is_active ORDER BY full_name, id",
-          "refId": "StandardVariableQuery"
-        },
+        "query": "SELECT id::text AS __value, full_name || ' (' || email || ')' AS __text FROM users WHERE role = 'user' AND is_active ORDER BY full_name, id",
+        "definition": "SELECT id::text AS __value, full_name || ' (' || email || ')' AS __text FROM users WHERE role = 'user' AND is_active ORDER BY full_name, id",
+        "current": {},
+        "options": [],
         "refresh": 1,
         "sort": 0,
         "multi": false,

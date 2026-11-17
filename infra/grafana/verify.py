@@ -58,8 +58,10 @@ if __name__ == "__main__":
     else:
         raise RuntimeError("Grafana can read password hashes")
 
-    samples = query("SELECT (SELECT id FROM users WHERE role = 'user' AND is_active ORDER BY id LIMIT 1) AS student_id, "
-                    "(SELECT id FROM events ORDER BY id LIMIT 1) AS event_id")
+    samples = query("SELECT coalesce((SELECT user_id FROM attendances ORDER BY id LIMIT 1), "
+                    "(SELECT id FROM users WHERE role = 'user' AND is_active ORDER BY id LIMIT 1)) AS student_id, "
+                    "coalesce((SELECT event_id FROM attendances ORDER BY id LIMIT 1), "
+                    "(SELECT id FROM events ORDER BY id LIMIT 1)) AS event_id")
     if not samples or None in samples[0]:
         raise RuntimeError("Need an active student and event to verify reports")
     student_id, event_id = samples[0]
@@ -71,14 +73,19 @@ if __name__ == "__main__":
         dashboard = request("/api/dashboards/uid/" + uid)["dashboard"]
         if not dashboard.get("templating", {}).get("list"):
             raise RuntimeError(f"{uid} has no selector")
-        options_sql = dashboard["templating"]["list"][0]["query"]["query"]
+        options_sql = dashboard["templating"]["list"][0]["query"]
+        if not isinstance(options_sql, str):
+            raise RuntimeError(f"{uid} selector query must be SQL text")
         if not query(options_sql):
             raise RuntimeError(f"{uid} selector has no options")
         for panel in dashboard["panels"]:
             sql = panel["targets"][0]["rawSql"]
             sql = sql.replace("${" + var + ":sqlstring}", "'" + str(value) + "'")
             rows = query(sql)
-            print(f"{uid}: {panel['title']}: {len(rows)} row(s)")
+            if panel["title"].startswith("Selected ") and len(rows) != 1:
+                raise RuntimeError(f"{uid} selection context did not resolve")
+            detail = f", value={rows[0][0]}" if panel["type"] == "stat" and rows else ""
+            print(f"{uid}: {panel['title']}: {len(rows)} row(s){detail}")
 
     overview = request("/api/dashboards/uid/attendance-overview")["dashboard"]
     turnout = next(p for p in overview["panels"] if p["title"] == "Turnout per event")

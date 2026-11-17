@@ -14,7 +14,40 @@
   ],
   "panels": [
     {
-      "id": 28,
+      "id": 29,
+      "title": "Selected session and assigned groups",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "attendance-pg"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 4
+      },
+      "targets": [
+        {
+          "rawSql": "\nWITH chosen AS (\n  SELECT e.id FROM events e WHERE e.id = ${event_id:sqlstring}::bigint\n), roster AS (\n  SELECT u.id FROM users u CROSS JOIN chosen e\n  WHERE u.role = 'user' AND u.is_active\n    AND (\n      NOT EXISTS (SELECT 1 FROM event_groups eg WHERE eg.event_id = e.id)\n      OR EXISTS (\n        SELECT 1 FROM event_groups eg\n        JOIN group_members gm ON gm.group_id = eg.group_id\n        WHERE eg.event_id = e.id AND gm.user_id = u.id\n      )\n    )\n), participants AS (\n  SELECT id FROM roster\n  UNION\n  SELECT a.user_id AS id FROM attendances a JOIN chosen e ON e.id = a.event_id\n), sheet AS (\n  SELECT u.id, u.full_name, u.email, r.id IS NOT NULL AS on_roster,\n         a.status, a.is_late, a.submitted_at, a.source\n  FROM participants p JOIN users u ON u.id = p.id\n  LEFT JOIN roster r ON r.id = u.id\n  CROSS JOIN chosen e\n  LEFT JOIN attendances a ON a.event_id = e.id AND a.user_id = u.id\n)\n\nSELECT e.id AS event_id, e.title AS event, e.starts_at AS starts,\n       coalesce((SELECT string_agg(g.name, ', ' ORDER BY g.name)\n                 FROM event_groups eg JOIN groups g ON g.id = eg.group_id\n                 WHERE eg.event_id = e.id), 'Everyone') AS assigned_groups,\n       (SELECT count(*) FROM roster) AS active_students_in_groups\nFROM events e WHERE e.id = ${event_id:sqlstring}::bigint\n",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "attendance-pg"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 30,
       "title": "Expected students",
       "type": "stat",
       "datasource": {
@@ -23,7 +56,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 0,
+        "y": 4,
         "w": 6,
         "h": 4
       },
@@ -47,7 +80,7 @@
       "options": {}
     },
     {
-      "id": 29,
+      "id": 31,
       "title": "Present students",
       "type": "stat",
       "datasource": {
@@ -56,7 +89,7 @@
       },
       "gridPos": {
         "x": 6,
-        "y": 0,
+        "y": 4,
         "w": 6,
         "h": 4
       },
@@ -80,7 +113,7 @@
       "options": {}
     },
     {
-      "id": 30,
+      "id": 32,
       "title": "Absent or rejected",
       "type": "stat",
       "datasource": {
@@ -89,7 +122,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 0,
+        "y": 4,
         "w": 6,
         "h": 4
       },
@@ -113,7 +146,7 @@
       "options": {}
     },
     {
-      "id": 31,
+      "id": 33,
       "title": "Turnout",
       "type": "stat",
       "datasource": {
@@ -122,7 +155,7 @@
       },
       "gridPos": {
         "x": 18,
-        "y": 0,
+        "y": 4,
         "w": 6,
         "h": 4
       },
@@ -148,7 +181,7 @@
       "options": {}
     },
     {
-      "id": 32,
+      "id": 34,
       "title": "Session sheet - export this table as CSV",
       "type": "table",
       "datasource": {
@@ -157,7 +190,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 4,
+        "y": 8,
         "w": 24,
         "h": 18
       },
@@ -191,10 +224,10 @@
           "type": "grafana-postgresql-datasource",
           "uid": "attendance-pg"
         },
-        "query": {
-          "query": "SELECT id::text AS __value, title || ' - ' || to_char(starts_at AT TIME ZONE 'Europe/Bucharest', 'YYYY-MM-DD HH24:MI') || ' (#' || id || ')' AS __text FROM events ORDER BY starts_at DESC, id DESC",
-          "refId": "StandardVariableQuery"
-        },
+        "query": "SELECT id::text AS __value, title || ' - ' || to_char(starts_at AT TIME ZONE 'Europe/Bucharest', 'YYYY-MM-DD HH24:MI') || ' (#' || id || ')' AS __text FROM events ORDER BY starts_at DESC, id DESC",
+        "definition": "SELECT id::text AS __value, title || ' - ' || to_char(starts_at AT TIME ZONE 'Europe/Bucharest', 'YYYY-MM-DD HH24:MI') || ' (#' || id || ')' AS __text FROM events ORDER BY starts_at DESC, id DESC",
+        "current": {},
+        "options": [],
         "refresh": 1,
         "sort": 0,
         "multi": false,

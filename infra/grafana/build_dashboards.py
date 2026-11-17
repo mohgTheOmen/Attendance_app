@@ -140,7 +140,8 @@ biz = dashboard("attendance-overview", "Attendance Overview", [
 def variable(name, label, query):
     return {
         "name": name, "label": label, "type": "query", "datasource": PG,
-        "query": {"query": query, "refId": "StandardVariableQuery"},
+        "query": query, "definition": query,
+        "current": {}, "options": [],
         "refresh": 1, "sort": 0, "multi": False, "includeAll": False,
     }
 
@@ -174,15 +175,22 @@ WITH expected AS (
 """
 
 individual = report_dashboard("attendance-individual-record", "Report 1 - Individual Attendance Record", [
+    panel("Selected student and current groups", "table", [sql("""
+SELECT u.id AS student_id, u.full_name AS student, u.email,
+       coalesce((SELECT string_agg(g.name, ', ' ORDER BY g.name)
+                 FROM group_members gm JOIN groups g ON g.id = gm.group_id
+                 WHERE gm.user_id = u.id), 'No groups') AS current_groups
+FROM users u WHERE u.id = ${student_id:sqlstring}::bigint
+""")], 0, 0, 24, 4, PG),
     panel("Expected sessions", "stat", [sql(student_events +
-          "SELECT count(*) AS value FROM record")], 0, 0, 6, 4, PG),
+          "SELECT count(*) AS value FROM record")], 0, 4, 6, 4, PG),
     panel("Present sessions", "stat", [sql(student_events +
-          "SELECT count(*) AS value FROM record WHERE status <> 'rejected'")], 6, 0, 6, 4, PG),
+          "SELECT count(*) AS value FROM record WHERE status <> 'rejected'")], 6, 4, 6, 4, PG),
     panel("Missed sessions", "stat", [sql(student_events +
-          "SELECT count(*) AS value FROM record WHERE status IS NULL OR status = 'rejected'")], 12, 0, 6, 4, PG),
+          "SELECT count(*) AS value FROM record WHERE status IS NULL OR status = 'rejected'")], 12, 4, 6, 4, PG),
     panel("Attendance rate", "stat", [sql(student_events +
           "SELECT coalesce(round(100.0 * count(*) FILTER (WHERE status <> 'rejected') / nullif(count(*), 0), 1), 0) AS value FROM record")],
-          18, 0, 6, 4, PG, "percent"),
+          18, 4, 6, 4, PG, "percent"),
     panel("Attendance record - export this table as CSV", "table", [sql(student_events + """
 SELECT id AS event_id, title AS event, starts_at AS starts, ends_at AS ends,
        CASE WHEN status = 'approved' THEN 'Present (approved)'
@@ -192,7 +200,7 @@ SELECT id AS event_id, title AS event, starts_at AS starts, ends_at AS ends,
        coalesce(is_late, false) AS late, submitted_at AS checked_in_at,
        source::text AS check_in_source
 FROM record ORDER BY starts_at DESC, id DESC
-""")], 0, 4, 24, 16, PG),
+""")], 0, 8, 24, 16, PG),
 ], [variable("student_id", "Student", "SELECT id::text AS __value, full_name || ' (' || email || ')' AS __text FROM users WHERE role = 'user' AND is_active ORDER BY full_name, id")])
 
 
@@ -225,16 +233,24 @@ WITH chosen AS (
 """
 
 session = report_dashboard("attendance-session-sheet", "Report 5 - Class Session Attendance Sheet", [
+    panel("Selected session and assigned groups", "table", [sql(session_cte + """
+SELECT e.id AS event_id, e.title AS event, e.starts_at AS starts,
+       coalesce((SELECT string_agg(g.name, ', ' ORDER BY g.name)
+                 FROM event_groups eg JOIN groups g ON g.id = eg.group_id
+                 WHERE eg.event_id = e.id), 'Everyone') AS assigned_groups,
+       (SELECT count(*) FROM roster) AS active_students_in_groups
+FROM events e WHERE e.id = ${event_id:sqlstring}::bigint
+""")], 0, 0, 24, 4, PG),
     panel("Expected students", "stat", [sql(session_cte +
-          "SELECT count(*) AS value FROM sheet WHERE on_roster")], 0, 0, 6, 4, PG),
+          "SELECT count(*) AS value FROM sheet WHERE on_roster")], 0, 4, 6, 4, PG),
     panel("Present students", "stat", [sql(session_cte +
-          "SELECT count(*) AS value FROM sheet WHERE on_roster AND status <> 'rejected'")], 6, 0, 6, 4, PG),
+          "SELECT count(*) AS value FROM sheet WHERE on_roster AND status <> 'rejected'")], 6, 4, 6, 4, PG),
     panel("Absent or rejected", "stat", [sql(session_cte +
           "SELECT count(*) AS value FROM sheet WHERE on_roster AND (status IS NULL OR status = 'rejected')")],
-          12, 0, 6, 4, PG),
+          12, 4, 6, 4, PG),
     panel("Turnout", "stat", [sql(session_cte +
           "SELECT coalesce(round(100.0 * count(*) FILTER (WHERE on_roster AND status <> 'rejected') / nullif(count(*) FILTER (WHERE on_roster), 0), 1), 0) AS value FROM sheet")],
-          18, 0, 6, 4, PG, "percent"),
+          18, 4, 6, 4, PG, "percent"),
     panel("Session sheet - export this table as CSV", "table", [sql(session_cte + """
 SELECT id AS student_id, full_name AS student, email,
        CASE WHEN on_roster THEN 'Yes' ELSE 'No (extra attendee)' END AS expected,
@@ -245,7 +261,7 @@ SELECT id AS student_id, full_name AS student, email,
        coalesce(is_late, false) AS late, submitted_at AS checked_in_at,
        source::text AS check_in_source
 FROM sheet ORDER BY on_roster DESC, full_name, id
-""")], 0, 4, 24, 18, PG),
+""")], 0, 8, 24, 18, PG),
 ], [variable("event_id", "Session", "SELECT id::text AS __value, title || ' - ' || to_char(starts_at AT TIME ZONE 'Europe/Bucharest', 'YYYY-MM-DD HH24:MI') || ' (#' || id || ')' AS __text FROM events ORDER BY starts_at DESC, id DESC")])
 
 for name, d in [("api-health.json", api), ("attendance-overview.json", biz),
