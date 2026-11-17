@@ -15,6 +15,21 @@ services:
       retries: 10
     restart: unless-stopped
 
+  grafana-db-init:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: attendance
+      POSTGRES_DB: attendance
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.deploy}
+      GRAFANA_DB_PASSWORD: ${GRAFANA_DB_PASSWORD:?Set GRAFANA_DB_PASSWORD in .env.deploy}
+    volumes:
+      - ./infra/postgres/init/01-grafana-reader.sh:/init.sh:ro
+    entrypoint: ["sh", "/init.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   backend:
     image: ${BACKEND_IMAGE:?Set BACKEND_IMAGE in .env.deploy}
     environment:
@@ -41,6 +56,33 @@ services:
       - backend
     restart: unless-stopped
 
+  prometheus:
+    image: prom/prometheus:v3.4.1
+    volumes:
+      - ./infra/prometheus/deploy.yml:/etc/prometheus/prometheus.yml:ro
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana-oss:12.0.1
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD in .env.deploy}
+      GRAFANA_DB_PASSWORD: ${GRAFANA_DB_PASSWORD:?Set GRAFANA_DB_PASSWORD in .env.deploy}
+      PROMETHEUS_URL: http://prometheus:9090
+      PG_HOST: postgres:5432
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana:/var/lib/grafana
+    ports: ["127.0.0.1:${GRAFANA_PORT:-3000}:3000"]
+    depends_on:
+      grafana-db-init:
+        condition: service_completed_successfully
+      prometheus:
+        condition: service_started
+    restart: unless-stopped
+
 volumes:
   pgdata:
   uploads:
+  grafana:

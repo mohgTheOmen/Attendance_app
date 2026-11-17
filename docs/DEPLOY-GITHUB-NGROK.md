@@ -1,6 +1,6 @@
 # Deploy with GitHub Pages and ngrok on a Windows PC
 
-GitHub Actions builds and publishes the React frontend to GitHub Pages. The existing CI workflow builds and pushes the backend image to GitHub Container Registry (GHCR) on pushes to `main`. Docker Desktop on the Windows PC runs PostgreSQL, the backend, and ngrok continuously. Keep the PC and Docker Desktop running for the API to stay online.
+GitHub Actions builds and publishes the React frontend to GitHub Pages. The existing CI workflow builds and pushes the backend image to GitHub Container Registry (GHCR) on pushes to `main`. Docker Desktop on the Windows PC runs PostgreSQL, the backend, ngrok, Prometheus, and Grafana. Keep the PC and Docker Desktop running for the API and dashboards to stay online.
 
 ## 1. Get an ngrok domain
 
@@ -31,6 +31,7 @@ Edit `.env.deploy`:
 - Generate a long random `JWT_SECRET`, and set a strong `ADMIN_PASSWORD` and your `ADMIN_EMAIL`.
 - Set `CORS_ORIGINS` to the GitHub Pages *origin*, for example `["https://mohgtheomen.github.io"]`. Do not include `/Attendance_app/`.
 - Adjust `BACKEND_IMAGE` if the GitHub owner or repository name changes.
+- Set different strong passwords for `GRAFANA_ADMIN_PASSWORD` and `GRAFANA_DB_PASSWORD`. Grafana is available only on your PC at `http://localhost:3000` by default; change `GRAFANA_PORT` if port 3000 is taken.
 
 Start the local services:
 
@@ -43,11 +44,19 @@ docker compose --env-file .env.deploy -f compose.deploy.yml logs ngrok --tail 50
 
 Open `https://YOUR-DOMAIN.ngrok-free.dev/health` to check the API, then open the Pages URL and sign in with the admin credentials from `.env.deploy`. The public API URL is embedded in the frontend at build time; if it changes, update `NGROK_API_ORIGIN` and rerun the Pages workflow.
 
+## Attendance reports in Grafana
+
+Open `http://localhost:3000` on the Windows PC and sign in as `admin` with `GRAFANA_ADMIN_PASSWORD` from `.env.deploy`. Open the **Attendance** folder. The dashboards include **Report 1 - Individual Attendance Record** (select a student and date range), **Report 5 - Class Session Attendance Sheet** (select a session), **Attendance Overview**, and **Attendance API Health**.
+
+To export a report, open the report's table panel menu, choose **Inspect → Data**, enable **Download for Excel** if needed, then choose **Download CSV**. The CSV opens in Excel. Grafana OSS does not provide native dashboard PDF export; use your browser's print-to-PDF for a visual snapshot, or the application's existing Excel export where applicable. Grafana stays local on the PC and is not exposed through ngrok.
+
+The attendance record counts approved and pending check-ins as present and rejected check-ins as missed. It lists past sessions in the selected date range that currently target the student's groups (or everyone). The session sheet includes current expected students plus any extra attendees. Group membership is current, not a historical snapshot. Course, semester, excuse documents, grades, and check-out times are not stored yet, so the other recommended reports require data-model work before they can be accurate.
+
 ## Updates and data
 
 Each push to `main` runs CI and publishes a new backend image. On the PC, run the `pull` and `up -d` commands above to update the backend. The Pages workflow republishes frontend changes automatically.
 
-The `pgdata` and `uploads` Docker volumes persist across container recreation. Back up both volumes before upgrades and test restoring them. Do not run `docker compose down -v` against this deployment, because that removes the data volumes.
+The `pgdata`, `uploads`, and `grafana` Docker volumes persist across container recreation. Back up these volumes before upgrades and test restoring them. Do not run `docker compose down -v` against this deployment, because that removes the data volumes.
 
 The backend image includes Tesseract for paper-list OCR. OCR imports and their attendance records are stored in PostgreSQL; imported sheet images use the existing `uploads` volume. The backend starts by applying Alembic migrations, including the OCR schema migration. A local roster spreadsheet is not part of the image and should be imported separately if its users are needed. Azure OCR is optional and requires separate credentials.
 
