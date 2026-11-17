@@ -42,6 +42,7 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:?Set CORS_ORIGINS in .env.deploy}
     volumes:
       - uploads:/data/uploads
+    ports: ["127.0.0.1:8000:8000"]
     depends_on:
       postgres:
         condition: service_healthy

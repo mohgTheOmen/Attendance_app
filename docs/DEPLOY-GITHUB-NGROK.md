@@ -44,6 +44,8 @@ docker compose --env-file .env.deploy -f compose.deploy.yml logs ngrok --tail 50
 
 Open `https://YOUR-DOMAIN.ngrok-free.dev/health` to check the API, then open the Pages URL and sign in with the admin credentials from `.env.deploy`. The public API URL is embedded in the frontend at build time; if it changes, update `NGROK_API_ORIGIN` and rerun the Pages workflow.
 
+For local development, the backend is also available at `http://127.0.0.1:8000`. In `frontend`, run `npm run dev -- --host 127.0.0.1` and open `http://localhost:5173`; Vite proxies `/api` to the local backend.
+
 ## Attendance reports in Grafana
 
 Open `http://localhost:3000` on the Windows PC and sign in as `admin` with `GRAFANA_ADMIN_PASSWORD` from `.env.deploy`. Open the **Attendance** folder. The dashboards include **Report 1 - Individual Attendance Record** (select a student and date range), **Report 5 - Class Session Attendance Sheet** (select a session), **Attendance Overview**, and **Attendance API Health**.
