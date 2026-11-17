@@ -87,6 +87,8 @@ Under **Import list**, an admin uploads one or more photos of a signed paper lis
 
 Tesseract has to be installed on the server. On Windows: `winget install UB-Mannheim.TesseractOCR`; the Docker image already includes it. To try the pipeline on an image without saving anything: `python -m app.ocr.evaluate list.jpg`.
 
+If an uncommitted import was read with an older OCR pipeline, re-read its stored photos with `docker compose --env-file .env.deploy -f compose.deploy.yml exec backend python -m app.ocr.reprocess IMPORT_ID`. This updates its review lines without creating attendance records.
+
 Tesseract is weak on handwriting, so most of the accuracy comes from matching against the roster. On a test photo of a handwritten list it pre-selected 16 of 19 students correctly, with no false matches. The rest were left for the admin.
 
 The **Attendances** page has filters for source (self check-in or paper list), group and event date range. It also shows charts for the current filters: attendance per event against the expected number, review status, source, by group, and most present. Click a chart to filter by it, or switch any chart to a table.

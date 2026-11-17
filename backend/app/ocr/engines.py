@@ -2,13 +2,14 @@
 import base64
 import json
 import os
+import re
 import shutil
 from functools import lru_cache
 
 import httpx
 
 from app.config import get_settings
-from app.ocr.preprocess import prepare
+from app.ocr.preprocess import decode, prepare
 
 WINDOWS_TESSERACT = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
@@ -32,8 +33,17 @@ def tesseract_lines(data: bytes) -> list[str]:
     if not cmd:
         raise EngineUnavailable("Tesseract is not installed (set TESSERACT_CMD)")
     pytesseract.pytesseract.tesseract_cmd = cmd
-    # psm 4: a single column of text of variable sizes, i.e. a handwritten list
-    text = pytesseract.image_to_string(prepare(data), lang=get_settings().ocr_lang, config="--psm 4")
+    lang = get_settings().ocr_lang
+    # The binary threshold can erase light handwriting on grid paper. Compare it with
+    # the normalized colour image and keep the reading with more name-like lines.
+    prepared = pytesseract.image_to_string(prepare(data), lang=lang, config="--psm 4")
+    colour = pytesseract.image_to_string(decode(data), lang=lang, config="--psm 6")
+
+    def name_lines(text: str) -> int:
+        return sum(len(re.findall(r"[^\W\d_]{3,}", line, re.UNICODE)) >= 2
+                   for line in text.splitlines())
+
+    text = colour if name_lines(colour) > name_lines(prepared) else prepared
     return [line.strip() for line in text.splitlines() if line.strip()]
 
 

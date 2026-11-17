@@ -130,7 +130,9 @@ def test_import_accepts_image_over_six_mb(client, admin, monkeypatch):
 
 
 def test_import_decodes_and_stores_real_large_photo(client, admin, monkeypatch):
-    monkeypatch.setitem(engines.ENGINES, "tesseract", lambda data: ["1) Sample Student"])
+    received = []
+    monkeypatch.setitem(engines.ENGINES, "tesseract",
+                        lambda data: received.append(data) or ["1) Sample Student"])
     pixels = random.Random(0).randbytes(3500 * 3000 * 3)
     image = Image.frombytes("RGB", (3500, 3000), pixels)
     output = io.BytesIO()
@@ -144,6 +146,7 @@ def test_import_decodes_and_stores_real_large_photo(client, admin, monkeypatch):
     stored = client.get(f"/api/admin/ocr/imports/{import_id}/images/0", headers=admin)
     assert stored.status_code == 200
     assert len(stored.content) < len(photo)
+    assert received == [stored.content]
 
 
 def test_import_without_event_detects_date_and_lets_admin_choose(client, admin, roster, monkeypatch):

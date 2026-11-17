@@ -105,7 +105,9 @@ def _read_images(files: list[UploadFile], engine: str, first_index: int):
             paths.append(store_image_bytes(data, STORED_IMAGE_PX))  # also validates it is an image
             if d := photo_taken(data):
                 photo_dates.append(d)
-            lines += [(i, text) for text in ENGINES[engine](data)]
+            # Read the same orientation-corrected JPEG that the reviewer sees.
+            normalized = photo_abspath(paths[-1]).read_bytes()
+            lines += [(i, text) for text in ENGINES[engine](normalized)]
             ocr_imports.labels(engine=engine, result="ok").inc()
     except EngineUnavailable as exc:
         ocr_imports.labels(engine=engine, result="error").inc()
